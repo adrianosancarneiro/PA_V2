@@ -1,0 +1,16 @@
+# Credentials and sensitive data
+.env
+token.json
+client_secret_*.json
+
+# Python virtual environment
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Docker volumes
+n8n_data/
+
+# Logs
+*.log

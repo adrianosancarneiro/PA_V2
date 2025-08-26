@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pa_v2"
+version = "0.1.0"
+description = "Personal Assistant V2"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "google-api-python-client",
+    "google-auth-httplib2", 
+    "google-auth-oauthlib",
+    "google-auth",
+    "msal",
+    "requests",
+    "python-dotenv",
+]
+
+[project.scripts]
+pa-v2 = "pa_v2.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pa_v2"]
+
+[tool.uv]
