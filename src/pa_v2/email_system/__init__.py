@@ -1,5 +1,5 @@
 """
-Email module for PA_V2
+Email system module for PA_V2
 Provides email integration capabilities with multiple providers.
 """
 

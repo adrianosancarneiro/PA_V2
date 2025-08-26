@@ -5,12 +5,11 @@ These functions are designed to work without user interaction.
 
 import sys
 import os
-# Add the src directory to the path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.append(os.path.dirname(__file__))
 
-from pa_v2.email.integration import get_latest_emails, send_email
-from pa_v2.email.providers.gmail_provider import GmailProvider
-from pa_v2.email.providers.outlook_provider import OutlookGraphProvider
+from ..email_system.integration import get_latest_emails, send_email
+from ..email_system.providers.gmail_provider import GmailProvider
+from ..email_system.providers.outlook_provider import OutlookGraphProvider
 
 def check_email_auth_status():
     """Check authentication status for both providers"""
@@ -77,7 +76,7 @@ def bot_send_email(provider="gmail", to_addr="", subject="", body="", html_body=
 
 def get_available_providers():
     """Get list of available and authenticated providers"""
-    from pa_v2.email.integration import EmailProviderRegistry
+    from ..email_system.integration import EmailProviderRegistry
     
     all_providers = EmailProviderRegistry.get_all_providers()
     auth_status = check_email_auth_status()

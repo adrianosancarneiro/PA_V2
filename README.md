@@ -1,4 +1,7 @@
-# PA_V2 - Personal Assistant Version 2
+# PA_V2 - Personal│       ├── 📁 email_system/    # Email integration modules
+│       │   ├── 📄 __init__.py
+│       │   ├── 📄 integration.py    # Main email integration logic
+│       │   └── 📁 providers/        # Email provider implementationsistant Version 2
 
 A modular email integration system with support for multiple email providers and bot interfaces.
 
@@ -126,7 +129,7 @@ providers = pa_v2.EmailProviderRegistry.get_all_providers()
 ### Direct Module Import
 
 ```python
-from pa_v2.email.integration import send_email, get_latest_emails
+from pa_v2.email_system.integration import send_email, get_latest_emails
 
 # Send email
 result = send_email("gmail", "user@example.com", "Subject", "Body")
@@ -196,13 +199,13 @@ pa-v2 send-email        # Send an email via command line
 
 ## 🔌 Adding New Email Providers
 
-1. Create a new provider in `src/pa_v2/email/providers/`
+1. Create a new provider in `src/pa_v2/email_system/providers/`
 2. Implement the `EmailProviderInterface`
 3. The provider will be auto-discovered and registered
 
 Example:
 ```python
-# src/pa_v2/email/providers/my_provider.py
+# src/pa_v2/email_system/providers/my_provider.py
 class MyEmailProvider:
     @staticmethod
     def get_name() -> str:
@@ -239,7 +242,7 @@ uv sync
 
 ### Import Path Changes:
 - **Old**: `from email_integration import send_email`
-- **New**: `from pa_v2.email.integration import send_email`
+- **New**: `from pa_v2.email_system.integration import send_email`
 - **Or**: `import pa_v2; pa_v2.send_email(...)`
 
 ### File Locations:
@@ -256,8 +259,8 @@ uv sync
 
 | Old Location | New Location |
 |-------------|-------------|
-| `email_integration.py` | `src/pa_v2/email/integration.py` |
-| `email_plugins/` | `src/pa_v2/email/providers/` |
+| `email_integration.py` | `src/pa_v2/email_system/integration.py` |
+| `email_plugins/` | `src/pa_v2/email_system/providers/` |
 | `telegram_bot_email.py` | `src/pa_v2/bots/telegram_bot_email.py` |
 | `*.json` (configs) | `config/*.json` |
 | `test_*.py` | `tests/test_*.py` |

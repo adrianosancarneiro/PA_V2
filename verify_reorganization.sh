@@ -82,7 +82,7 @@ echo "🔗 Testing internal imports..."
 python -c "
 import sys
 sys.path.insert(0, 'src')
-from pa_v2.email.integration import EmailProviderRegistry
+from pa_v2.email_system.integration import EmailProviderRegistry
 from pa_v2.bots.telegram_bot_email import check_email_auth_status
 print('✅ Internal imports working')
 " 2>/dev/null

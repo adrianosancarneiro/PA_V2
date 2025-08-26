@@ -10,8 +10,8 @@ import os
 # Add the src directory to the path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from pa_v2.email.providers.gmail_provider import GmailProvider
-from pa_v2.email.providers.outlook_provider import OutlookGraphProvider
+from pa_v2.email_system.providers.gmail_provider import GmailProvider
+from pa_v2.email_system.providers.outlook_provider import OutlookGraphProvider
 
 def setup_gmail():
     """Setup Gmail authentication"""
