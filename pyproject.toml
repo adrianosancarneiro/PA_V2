@@ -10,12 +10,13 @@ readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
     "google-api-python-client",
-    "google-auth-httplib2", 
+    "google-auth-httplib2",
     "google-auth-oauthlib",
     "google-auth",
     "msal",
     "requests",
     "python-dotenv",
+    "python-telegram-bot>=21.6",
 ]
 
 [project.scripts]
