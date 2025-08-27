@@ -40,3 +40,6 @@ deps = [
     "python-telegram-bot>=21.6",
     "python-dateutil",
 ]
+dev-dependencies = [
+    "pytest",
+]
