@@ -9,6 +9,8 @@ import os
 import sys
 from typing import Dict, List, Optional, Any, Union
 
+from .filtering import filter_emails
+
 # Define provider interface
 class EmailProviderInterface:
     @staticmethod
@@ -51,7 +53,7 @@ class EmailProviderRegistry:
         return list(cls._providers.keys())
 
 # Main email reading function
-def get_latest_emails(provider: str, count: int = 10) -> Dict[str, Any]:
+def get_latest_emails(provider: str, count: int = 10, filters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Get latest emails from the specified provider
     
@@ -78,7 +80,11 @@ def get_latest_emails(provider: str, count: int = 10) -> Dict[str, Any]:
     try:
         # Check if provider supports email reading
         if hasattr(email_provider, 'get_latest_emails'):
-            return email_provider.get_latest_emails(count)
+            result = email_provider.get_latest_emails(count)
+            if result.get("success") and filters:
+                emails = result.get("emails", [])
+                result["emails"] = filter_emails(emails, **filters)
+            return result
         else:
             return {
                 "success": False,
