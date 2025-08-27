@@ -17,6 +17,7 @@ dependencies = [
     "requests",
     "python-dotenv",
     "python-telegram-bot>=21.6",
+    "python-dateutil",
 ]
 
 [project.scripts]
@@ -26,3 +27,16 @@ pa-v2 = "pa_v2.main:main"
 packages = ["src/pa_v2"]
 
 [tool.uv]
+# Configuration for `uv` package manager (keeps .venv in sync)
+venv = ".venv"
+deps = [
+    "requests",
+    "google-api-python-client",
+    "google-auth-httplib2",
+    "google-auth-oauthlib",
+    "google-auth",
+    "msal",
+    "python-dotenv",
+    "python-telegram-bot>=21.6",
+    "python-dateutil",
+]

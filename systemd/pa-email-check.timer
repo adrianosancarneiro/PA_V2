@@ -1,0 +1,10 @@
+[Unit]
+Description=Run email check every minute
+
+[Timer]
+OnCalendar=minutely
+Persistent=true
+Unit=pa-email-check.service
+
+[Install]
+WantedBy=timers.target

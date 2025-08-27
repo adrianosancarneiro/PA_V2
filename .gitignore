@@ -2,6 +2,10 @@
 .env
 token.json
 client_secret_*.json
+*token*.json
+*_token_cache.json
+gmail_token.json
+byu_outlook_token_cache.json
 
 # Python virtual environment
 .venv/

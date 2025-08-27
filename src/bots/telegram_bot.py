@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-load_dotenv()
+load_dotenv('/etc/pa_v2/secrets.env')
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
 # 1. Define the handler function for the /start command

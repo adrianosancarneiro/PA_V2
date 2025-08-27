@@ -7,11 +7,23 @@ After running this, your Telegram bot can use emails without interactive authent
 
 import sys
 import os
+import pathlib
+from dotenv import load_dotenv
+
+# Load system secrets
+load_dotenv('/etc/pa_v2/secrets.env')
+
+# Define CONFIG_DIR and set in environment for consistent provider paths
+CONFIG_DIR = pathlib.Path(os.getenv("CONFIG_DIR", os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "config"))).resolve()
+os.environ["CONFIG_DIR"] = str(CONFIG_DIR)
+CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+
 # Add the src directory to the path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from pa_v2.email_system.providers.gmail_provider import GmailProvider
-from pa_v2.email_system.providers.outlook_provider import OutlookGraphProvider
+from email_system.providers.gmail_provider import GmailProvider
+from email_system.providers.outlook_provider import OutlookGraphProvider
 
 def setup_gmail():
     """Setup Gmail authentication"""

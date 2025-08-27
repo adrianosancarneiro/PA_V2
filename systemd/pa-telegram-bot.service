@@ -1,0 +1,16 @@
+[Unit]
+Description=PA: Telegram bot for email notifications
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=mentorius
+WorkingDirectory=/home/mentorius/AI_Services/PA_V2
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/etc/pa_v2/secrets.env
+ExecStart=/home/mentorius/AI_Services/PA_V2/.venv/bin/python -m src.bots.telegram_bot_email
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

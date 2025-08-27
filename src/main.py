@@ -7,9 +7,14 @@ This script provides a command-line interface to various PA_V2 functions.
 import sys
 import os
 import argparse
+import time
+import subprocess
 from pathlib import Path
 
-from .email_system.integration import send_email, get_latest_emails, EmailProviderRegistry
+# Add src directory to path for imports
+sys.path.insert(0, os.path.dirname(__file__))
+
+from email_system.integration import send_email, get_latest_emails, EmailProviderRegistry
 
 def setup_auth():
     """Run email authentication setup"""
@@ -46,6 +51,34 @@ def send_email_cmd(args):
     else:
         print(f"❌ Failed to send email: {result['message']}")
 
+def start_email_monitor():
+    """Start the email monitoring service"""
+    from jobs.email_check import main as email_check_main, check_auth_status
+    
+    print("🔍 Checking email authentication status...")
+    auth_status = check_auth_status()
+    print("Authentication Status:")
+    for provider, is_auth in auth_status.items():
+        print(f"  {provider}: {'✅ Ready' if is_auth else '❌ Setup needed'}")
+    
+    if not all(auth_status.values()):
+        print("\n⚠️ Some providers need authentication. Run 'python -m src.main setup-auth' first.")
+        return
+    
+    print("\n🚀 Starting email monitor... (Press Ctrl+C to stop)")
+    try:
+        while True:
+            email_check_main()
+            print(f"😴 Sleeping for 60 seconds...")
+            time.sleep(60)  # Check every minute
+    except KeyboardInterrupt:
+        print("\n🛑 Email monitor stopped by user")
+
+def run_email_check_once():
+    """Run email check once and exit"""
+    from jobs.email_check import main as email_check_main
+    email_check_main()
+
 def list_providers():
     """List available email providers"""
     providers = EmailProviderRegistry.get_all_providers()
@@ -66,6 +99,10 @@ def main():
     # List providers command
     subparsers.add_parser('list-providers', help='List available email providers')
     
+    # Email monitoring commands
+    subparsers.add_parser('monitor-emails', help='Start email monitoring service (runs continuously)')
+    subparsers.add_parser('check-emails', help='Check for new emails once and exit')
+    
     # Send email command
     email_parser = subparsers.add_parser('send-email', help='Send an email')
     email_parser.add_argument('--provider', required=True, help='Email provider to use')
@@ -84,6 +121,10 @@ def main():
         list_providers()
     elif args.command == 'send-email':
         send_email_cmd(args)
+    elif args.command == 'monitor-emails':
+        start_email_monitor()
+    elif args.command == 'check-emails':
+        run_email_check_once()
     else:
         parser.print_help()
 
