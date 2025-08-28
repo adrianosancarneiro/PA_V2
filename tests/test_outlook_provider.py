@@ -9,7 +9,7 @@ import os
 # Add the src directory to the path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from pa_v2.email_system.providers.outlook_provider import OutlookGraphProvider
+from email_system.providers.outlook_provider import OutlookGraphProvider
 
 def test_outlook_provider():
     """Test the OutlookGraphProvider functionality"""

@@ -10,7 +10,7 @@ import os
 # Add the src directory to the path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from pa_v2.email_system.integration import send_email, EmailProviderRegistry
+from email_system.integration import send_email, EmailProviderRegistry
 
 def main():
     # List all available providers

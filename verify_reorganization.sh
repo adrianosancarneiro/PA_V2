@@ -22,11 +22,16 @@ else
     echo "✅ UV sync successful"
 fi
 
-# Test package import
-echo "📥 Testing package import..."
-python -c "import pa_v2; print('✅ Package import successful')" 2>/dev/null
+# Test package import (skip since pa_v2 is now removed)
+echo "📥 Testing direct module imports..."
+python -c "
+import sys
+sys.path.insert(0, 'src')
+import email_system.integration
+print('✅ Direct module imports successful')
+" 2>/dev/null
 if [ $? -ne 0 ]; then
-    echo "❌ Package import failed"
+    echo "❌ Direct module imports failed"
     exit 1
 fi
 
@@ -70,7 +75,7 @@ fi
 
 # Test src structure
 echo "🏗️  Testing source structure..."
-if [ -d "$PROJECT_ROOT/src/pa_v2" ]; then
+if [ -d "$PROJECT_ROOT/src/providers" ] && [ -d "$PROJECT_ROOT/src/repo" ] && [ -d "$PROJECT_ROOT/src/email_system" ]; then
     echo "✅ Source structure correct"
 else
     echo "❌ Source structure incorrect"
@@ -82,8 +87,8 @@ echo "🔗 Testing internal imports..."
 python -c "
 import sys
 sys.path.insert(0, 'src')
-from pa_v2.email_system.integration import EmailProviderRegistry
-from pa_v2.bots.telegram_bot_email import check_email_auth_status
+from email_system.integration import EmailProviderRegistry
+from bots.telegram_bot_email import check_email_auth_status
 print('✅ Internal imports working')
 " 2>/dev/null
 if [ $? -ne 0 ]; then
@@ -94,15 +99,15 @@ fi
 echo ""
 echo "🎉 ALL TESTS PASSED!"
 echo "=========================================="
-echo "✅ Project reorganization successful"
+echo "✅ PA_V2 removal successful" 
 echo "✅ UV integration working"
 echo "✅ Package structure correct"
 echo "✅ CLI commands functional"
 echo "✅ Imports working correctly"
 echo ""
-echo "🚀 Your PA_V2 project is ready to use!"
+echo "🚀 Your project is ready to use canonical imports!"
 echo ""
 echo "Quick commands to try:"
-echo "  pa-v2 list-providers"
-echo "  pa-v2 setup-auth"
-echo "  pa-v2 --help"
+echo "  python -m src.main list-providers"
+echo "  python -m src.main setup-auth"
+echo "  python -m src.main --help"

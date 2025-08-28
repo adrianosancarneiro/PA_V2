@@ -1,8 +1,8 @@
 [Unit]
-Description=Run email check every minute
+Description=Run email check every 2 minutes
 
 [Timer]
-OnCalendar=minutely
+OnCalendar=*:0/2
 Persistent=true
 Unit=pa-email-check.service
 
