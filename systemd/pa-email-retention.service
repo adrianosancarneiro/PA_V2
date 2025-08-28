@@ -1,0 +1,17 @@
+[Unit]
+Description=PA_V2 Email Retention Cleanup Service
+After=network.target
+
+[Service]
+Type=oneshot
+User=mentorius
+Group=mentorius
+WorkingDirectory=/home/mentorius/AI_Services/PA_V2
+Environment=DATABASE_URL=postgresql://user:pass@localhost/pa_v2
+EnvironmentFile=-/etc/pa_v2/secrets.env
+ExecStart=/home/mentorius/AI_Services/PA_V2/.venv/bin/python /home/mentorius/AI_Services/PA_V2/src/jobs/retention_cleanup.py
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

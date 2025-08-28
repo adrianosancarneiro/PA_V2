@@ -17,6 +17,9 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from email_system.integration import get_latest_emails
+from repo.email_repo import EmailRepo
+from providers.gmail import gmail_fetch_latest
+from providers.outlook import outlook_fetch_latest
 
 # Import providers safely (they may have missing dependencies)
 try:
@@ -266,6 +269,9 @@ def main() -> None:
     state = load_state()
     any_new = False
 
+    # Initialize email repository
+    repo = EmailRepo()
+
     for provider in PROVIDERS:
         if not auth_status.get(provider, False):
             print(f"⏭️ Skipping {provider} - not authenticated")
@@ -288,6 +294,30 @@ def main() -> None:
 
         for e in new_items:
             print(f"📝 Processing new email: {e.get('subject', 'No Subject')}")
+            
+            # Store email in database using normalized format
+            try:
+                email_id = repo.upsert_email(
+                    provider=provider,
+                    provider_message_id=str(e.get("id") or e.get("message_id") or e.get("internet_message_id") or ""),
+                    provider_thread_id=str(e.get("thread_id") or e.get("conversation_id") or ""),
+                    from_display=e.get("from_name"),
+                    from_email=e.get("from") or e.get("from_email"),
+                    to_emails=e.get("to") or e.get("to_emails") or [],
+                    cc_emails=e.get("cc") or e.get("cc_emails") or [],
+                    bcc_emails=e.get("bcc") or e.get("bcc_emails") or [],
+                    subject=e.get("subject"),
+                    snippet=e.get("snippet") or e.get("body_preview"),
+                    body_plain=e.get("body") or e.get("text") or e.get("body_text"),
+                    body_html=e.get("body_html"),
+                    received_at=parse_email_date(e.get("date") or e.get("received") or e.get("received_date")),
+                    tags=[]
+                )
+                print(f"💾 Stored email in database with ID: {email_id}")
+            except Exception as ex:
+                print(f"⚠️ Failed to store email in database: {ex}")
+                # Continue processing even if DB storage fails
+            
             text = get_text_from_email(e)
             try:
                 ai = llama_summarize_and_draft(text)
