@@ -22,7 +22,7 @@ def _confirm_delete_markup(email_id: int):
         InlineKeyboardButton("Cancel", callback_data=f"delcancel:{email_id}")
     ]])
 
-def on_callback(update: Update, context: CallbackContext):
+async def on_callback(update: Update, context: CallbackContext):
     """Single entry point for all inline callbacks"""
     if not update.callback_query or not update.callback_query.data:
         return
@@ -32,14 +32,14 @@ def on_callback(update: Update, context: CallbackContext):
     # Handle compose callbacks
     if data.startswith("cmp:"):
         from .compose_handlers import handle_compose_callback
-        handle_compose_callback(update, context)
+        await handle_compose_callback(update, context)
         return
     
     try:
         action, id_str = data.split(":", 1)
         email_id = int(id_str)
     except Exception:
-        update.callback_query.answer("Bad callback")
+        await update.callback_query.answer("Bad callback")
         return
 
     if action == "star":
@@ -47,9 +47,9 @@ def on_callback(update: Update, context: CallbackContext):
         try:
             repo.mark_important(email_id)
             repo.touch(email_id, action="mark_important")
-            update.callback_query.answer("Marked ⭐")
+            await update.callback_query.answer("Marked ⭐")
         except Exception as e:
-            update.callback_query.answer(f"Failed: {e}")
+            await update.callback_query.answer(f"Failed: {e}")
         return
 
     if action == "more":
@@ -57,7 +57,7 @@ def on_callback(update: Update, context: CallbackContext):
         try:
             row = repo.get_email_detail(email_id)
             if not row:
-                update.callback_query.answer("Email not found")
+                await update.callback_query.answer("Email not found")
                 return
                 
             subject = row.get("subject") or "(no subject)"
@@ -68,11 +68,11 @@ def on_callback(update: Update, context: CallbackContext):
                 snippet = snippet[:1500] + "…"
                 
             text = f"*From:* {from_d}\n*Subject:* {subject}\n\n{snippet}"
-            update.effective_chat.send_message(text, parse_mode="Markdown")
+            await update.effective_chat.send_message(text, parse_mode="Markdown")
             repo.touch(email_id, action="view")
-            update.callback_query.answer()
+            await update.callback_query.answer()
         except Exception as e:
-            update.callback_query.answer(f"Failed: {e}")
+            await update.callback_query.answer(f"Failed: {e}")
         return
 
     if action == "reply":
@@ -97,7 +97,7 @@ def on_callback(update: Update, context: CallbackContext):
             if has_internet_message_id:
                 provider_info = "🏢 **BYU Email Detected** - Outlook reply available for proper threading\n\n"
             
-            update.callback_query.message.edit_text(
+            await update.callback_query.message.edit_text(
                 f"**Choose Reply Method**\n\n"
                 f"{provider_info}"
                 f"To: {from_email}\n"
@@ -107,22 +107,22 @@ def on_callback(update: Update, context: CallbackContext):
                 parse_mode="Markdown"
             )
             
-            update.callback_query.answer("Choose reply method")
+            await update.callback_query.answer("Choose reply method")
             repo.touch(email_id)
         except Exception as e:
-            update.callback_query.answer(f"Failed: {e}")
+            await update.callback_query.answer(f"Failed: {e}")
         return
 
     if action == "delreq":
         # Request delete confirmation
         try:
-            update.callback_query.message.reply_text(
+            await update.callback_query.message.reply_text(
                 "Delete entire conversation? This moves all messages in this thread to Trash/Deleted Items.",
                 reply_markup=_confirm_delete_markup(email_id)
             )
-            update.callback_query.answer()
+            await update.callback_query.answer()
         except Exception as e:
-            update.callback_query.answer(f"Failed: {e}")
+            await update.callback_query.answer(f"Failed: {e}")
         return
 
     if action == "delok":
@@ -130,7 +130,7 @@ def on_callback(update: Update, context: CallbackContext):
         try:
             em = repo.get_email_row(email_id)
             if not em:
-                update.callback_query.answer("Email not found")
+                await update.callback_query.answer("Email not found")
                 return
                 
             deleted_by = f"telegram:{update.effective_user.id}"
@@ -159,19 +159,19 @@ def on_callback(update: Update, context: CallbackContext):
                 InlineKeyboardButton("↩ Undo", callback_data=f"undodel:{em['thread_id']}")
             ]])
             
-            update.callback_query.message.reply_text(
+            await update.callback_query.message.reply_text(
                 "Thread deleted. All messages moved to trash.",
                 reply_markup=undo_markup
             )
-            update.callback_query.answer("Deleted")
+            await update.callback_query.answer("Deleted")
         except Exception as e:
-            update.callback_query.answer(f"Failed: {e}")
+            await update.callback_query.answer(f"Failed: {e}")
         return
 
     if action == "delcancel":
         # Cancel delete action
-        update.callback_query.message.reply_text("Delete cancelled.")
-        update.callback_query.answer()
+        await update.callback_query.message.reply_text("Delete cancelled.")
+        await update.callback_query.answer()
         return
 
     if action == "undodel":
@@ -179,11 +179,11 @@ def on_callback(update: Update, context: CallbackContext):
         try:
             thread_id = int(id_str)
             repo.restore_thread_deleted(thread_id)
-            update.callback_query.message.reply_text("Thread restored from trash.")
-            update.callback_query.answer("Restored")
+            await update.callback_query.message.reply_text("Thread restored from trash.")
+            await update.callback_query.answer("Restored")
         except Exception as e:
-            update.callback_query.answer(f"Failed: {e}")
+            await update.callback_query.answer(f"Failed: {e}")
         return
 
     # Unknown action
-    update.callback_query.answer("Unknown action")
+    await update.callback_query.answer("Unknown action")

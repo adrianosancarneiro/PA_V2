@@ -29,12 +29,11 @@ from interfaces.telegram.views.handlers import on_callback
 from services.email.email_repo import EmailRepo
 
     # Import new compose functionality
-sys.path.append('src')
 try:
-    from telegram_compose.compose import (
+    from interfaces.telegram.views.compose_handlers import (
         start_compose, 
-        on_compose_callback, 
-        on_compose_message
+        handle_compose_callback, 
+        handle_compose_message
     )
     COMPOSE_AVAILABLE = True
 except ImportError:
@@ -160,6 +159,14 @@ async def setup_bot_data(application: Application) -> None:
         print(f"⚠️ Error setting up email services: {e}")
 
 
+async def combined_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle text messages for both reply and compose flows"""
+    if context.user_data.get('awaiting_reply'):
+        await handle_reply_message(update, context)
+    elif COMPOSE_AVAILABLE:
+        await handle_compose_message(update, context)
+
+
 def main() -> None:
     """Start the enhanced Telegram bot."""
     if not TOKEN:
@@ -186,13 +193,13 @@ def main() -> None:
     # Add reply message handler (for text input after selecting reply method)
     application.add_handler(MessageHandler(
         filters.TEXT & (~filters.COMMAND) & filters.UpdateType.MESSAGE,
-        lambda update, context: handle_reply_message(update, context) if context.user_data.get('awaiting_reply') else on_compose_message(update, context) if COMPOSE_AVAILABLE else None
+        combined_message_handler
     ))
     
     # Add compose handlers (if available)
     if COMPOSE_AVAILABLE:
         application.add_handler(CallbackQueryHandler(
-            on_compose_callback, 
+            handle_compose_callback, 
             pattern=r"^cmp:"
         ))
     

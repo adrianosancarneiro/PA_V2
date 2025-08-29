@@ -63,8 +63,8 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = int(os.getenv("TELEGRAM_CHAT_ID", "0")) if os.getenv("TELEGRAM_CHAT_ID") else 0
 LLAMA_BASE_URL = os.getenv("LLAMA_BASE_URL", "http://192.168.0.83:8080").rstrip("/")
 
-# Providers we'll check every run
-PROVIDERS = ("gmail", "outlook")  # must match your provider names
+# Providers we'll check every run (only Gmail now since Outlook emails are forwarded to Gmail)
+PROVIDERS = ("gmail",)  # Removed outlook since emails are forwarded to Gmail and labeled
 
 # How many messages to pull per run per provider (keep small, we filter by state)
 FETCH_COUNT = 10
@@ -416,13 +416,52 @@ def main() -> None:
             if push_repo and provider == "gmail":
                 push_repo.touch_poll("gmail")
 
+    # Check for unnotified emails and send notifications regardless of whether new emails were found
+    # This ensures that if emails were processed by webhook or other mechanisms but notifications failed,
+    # the monitor job will catch them and send notifications
+    if TELEGRAM_AVAILABLE and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        try:
+            print("� Checking for unnotified emails and sending digest...")
+            
+            # Get recent unnotified emails
+            unnotified_emails = repo.list_recent_unnotified(since_hours=24, limit=50)
+            
+            if unnotified_emails:
+                print(f"🔔 Found {len(unnotified_emails)} unnotified emails")
+                
+                # Send notifications for each unnotified email
+                from webhooks.svc import send_telegram_digest
+                for email in unnotified_emails:
+                    email_id = email['id']
+                    subject = email.get('subject', 'No Subject')
+                    
+                    try:
+                        print(f"📧 Sending notification for email {email_id}: {subject}")
+                        send_telegram_digest(email_id)
+                        repo.mark_notified(email_id)
+                        print(f"✅ Notified and marked: email {email_id}")
+                    except Exception as e:
+                        print(f"❌ Failed to notify email {email_id}: {e}")
+                        # Mark as notified anyway to prevent infinite retries
+                        try:
+                            repo.mark_notified(email_id)
+                            print(f"⚠️ Marked email {email_id} as notified despite notification failure")
+                        except Exception as me:
+                            print(f"❌ Failed to mark email {email_id}: {me}")
+            else:
+                print("✅ No unnotified emails found")
+                
+        except Exception as ex:
+            print(f"❌ Notification check failed: {ex}")
+    
+    # Also send digest for any new emails found in this run
     if any_new:
         print("💾 Processing completed")
         
-        # Send digest instead of individual messages
+        # Send digest for newly processed emails
         if TELEGRAM_AVAILABLE and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
             try:
-                print("📱 Sending Telegram digest...")
+                print("📱 Sending Telegram digest for new emails...")
                 rows = repo.latest_new_messages(limit=20)
                 if rows:
                     bot = Bot(TELEGRAM_BOT_TOKEN)
@@ -433,7 +472,7 @@ def main() -> None:
             except Exception as ex:
                 print(f"❌ Digest send failed: {ex}")
     else:
-        print("📭 No new emails found")
+        print("📭 No new emails found in this run")
     
     print(f"✅ Email check completed at {dt.datetime.now()}")
 

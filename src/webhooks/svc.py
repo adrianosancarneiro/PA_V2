@@ -283,16 +283,16 @@ async def gmail_process_history(incoming_hid: int):
     """
     try:
         print(f"🔄 Processing Gmail history from ID: {incoming_hid}")
-        
+
         creds = _load_creds()
         svc = build_service(creds)
-        
-    # Get starting history ID (last processed or, on first run, the incoming one)
-    start_hid = push.get_gmail_last_history_id() or incoming_hid
-    print(f"🔎 History scan from {start_hid} -> incoming {incoming_hid}")
-        
+
+        # Get starting history ID (last processed or, on first run, the incoming one)
+        start_hid = push.get_gmail_last_history_id() or incoming_hid
+        print(f"🔎 History scan from {start_hid} -> incoming {incoming_hid}")
+
         # Get history changes
-    history_result = gmail_history_list(svc, start_history_id=start_hid)
+        history_result = gmail_history_list(svc, start_history_id=start_hid)
         history_items = history_result.get("history", [])
         
         print(f"📨 Found {len(history_items)} history items to process")
@@ -346,24 +346,31 @@ async def gmail_process_history(incoming_hid: int):
                     print(f"✅ Processed new email: {nm.get('subject', 'No Subject')} (ID: {email_id})")
                     
                     # Send proper Telegram digest notification for new email
+                    notification_sent = False
                     try:
                         send_telegram_digest(email_id)
-                        # mark as notified to avoid duplicates
-                        try:
-                            repo.mark_notified(email_id)
-                        except Exception as me:
-                            print(f"⚠️ Failed to mark email {email_id} notified: {me}")
+                        notification_sent = True
+                        print(f"✅ Telegram notification sent for email ID: {email_id}")
                     except Exception as e:
                         print(f"⚠️ Failed to send Telegram digest: {e}")
                     
+                    # Always mark as notified to avoid infinite retries
+                    # (even if notification failed, we don't want to keep retrying in webhook)
+                    try:
+                        repo.mark_notified(email_id)
+                        status = "✅ notified" if notification_sent else "⚠️ marked (notification failed)"
+                        print(f"{status}: email ID {email_id}")
+                    except Exception as me:
+                        print(f"❌ Failed to mark email {email_id} as notified: {me}")
+                    
                 except Exception as e:
                     print(f"❌ Error processing message {msg_id}: {e}")
-        
-    # Update last processed history ID
-    push.set_gmail_last_history_id(incoming_hid)
-        
+
+        # Update last processed history ID
+        push.set_gmail_last_history_id(incoming_hid)
+
         print(f"🎉 Gmail webhook processing complete: {new_emails_count} new emails")
-        
+
     except Exception as e:
         print(f"❌ Error in gmail_process_history: {e}")
         push.set_push_state("gmail", "degraded")

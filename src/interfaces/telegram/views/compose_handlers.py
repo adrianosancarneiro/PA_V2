@@ -42,7 +42,7 @@ def _ensure_compose_state(context: CallbackContext) -> dict:
     ud.setdefault(ComposeState.BCC, [])
     return ud
 
-def start_compose(update: Update, context: CallbackContext):
+async def start_compose(update: Update, context: CallbackContext):
     """Start the compose flow - choose provider"""
     ud = _ensure_compose_state(context)
     ud[ComposeState.FLOW] = "provider"
@@ -52,13 +52,13 @@ def start_compose(update: Update, context: CallbackContext):
         InlineKeyboardButton("Outlook", callback_data="cmp:prov:outlook"),
     ]])
     
-    update.effective_chat.send_message(
+    await update.effective_chat.send_message(
         "📧 **Compose Email**\n\nChoose provider:", 
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
 
-def handle_compose_callback(update: Update, context: CallbackContext):
+async def handle_compose_callback(update: Update, context: CallbackContext):
     """Handle compose-related callback queries"""
     query = update.callback_query
     data = query.data
@@ -68,10 +68,10 @@ def handle_compose_callback(update: Update, context: CallbackContext):
         # Provider selection
         provider = data.split(":")[-1]
         ud[ComposeState.PROVIDER] = provider
-        query.answer(f"{provider.title()} selected")
+        await query.answer(f"{provider.title()} selected")
         ud[ComposeState.FLOW] = "recipients"
         
-        update.effective_chat.send_message(
+        await update.effective_chat.send_message(
             "👥 **Add Recipients**\n\n"
             "• Type an email address\n"
             "• Or type: `find john` to search contacts\n"
@@ -85,16 +85,16 @@ def handle_compose_callback(update: Update, context: CallbackContext):
         email = data.split(":", 2)[-1]
         if email not in ud[ComposeState.TO]:
             ud[ComposeState.TO].append(email)
-        query.answer(f"Added: {email}")
+        await query.answer(f"Added: {email}")
         
-        update.effective_chat.send_message(
+        await update.effective_chat.send_message(
             f"✅ Added: {email}\n\nType more recipients or `done` to continue."
         )
         return
     
     if data == "cmp:approve":
         # Approve and send email
-        _send_email_now(update, context)
+        await _send_email_now(update, context)
         return
     
     if data == "cmp:regen":
@@ -108,15 +108,15 @@ def handle_compose_callback(update: Update, context: CallbackContext):
             InlineKeyboardButton("🔄 Regenerate", callback_data="cmp:regen"),
         ]])
         
-        query.message.reply_text(
+        await query.message.reply_text(
             f"📝 **Regenerated Draft:**\n\n{draft}",
             reply_markup=keyboard,
             parse_mode="Markdown"
         )
-        query.answer()
+        await query.answer()
         return
 
-def handle_compose_message(update: Update, context: CallbackContext):
+async def handle_compose_message(update: Update, context: CallbackContext):
     """Handle text messages during compose flow"""
     ud = _ensure_compose_state(context)
     
@@ -132,7 +132,7 @@ def handle_compose_message(update: Update, context: CallbackContext):
             contacts = search_contacts(query, limit=8) or []
             
             if not contacts:
-                update.message.reply_text("❌ No contacts found.")
+                await update.message.reply_text("❌ No contacts found.")
                 return
             
             keyboard = InlineKeyboardMarkup([
@@ -140,18 +140,18 @@ def handle_compose_message(update: Update, context: CallbackContext):
                 for (_id, name, email) in contacts
             ])
             
-            update.message.reply_text("👥 **Select Contact:**", reply_markup=keyboard, parse_mode="Markdown")
+            await update.message.reply_text("👥 **Select Contact:**", reply_markup=keyboard, parse_mode="Markdown")
             return
         
         if text.lower() == "done":
             # Move to subject
             recipients = ud[ComposeState.TO]
             if not recipients:
-                update.message.reply_text("❌ Please add at least one recipient first.")
+                await update.message.reply_text("❌ Please add at least one recipient first.")
                 return
             
             ud[ComposeState.FLOW] = "subject"
-            update.message.reply_text(
+            await update.message.reply_text(
                 f"✅ **Recipients:** {', '.join(recipients)}\n\n"
                 f"📄 **Subject?**",
                 parse_mode="Markdown"
@@ -162,10 +162,10 @@ def handle_compose_message(update: Update, context: CallbackContext):
             # Add email address
             if text not in ud[ComposeState.TO]:
                 ud[ComposeState.TO].append(text)
-            update.message.reply_text(f"✅ Added: {text}\n\nType more or `done` to continue.")
+            await update.message.reply_text(f"✅ Added: {text}\n\nType more or `done` to continue.")
             return
         
-        update.message.reply_text(
+        await update.message.reply_text(
             "❌ Invalid input. Type:\n"
             "• `find <name>` to search contacts\n"
             "• A valid email address\n"
@@ -178,7 +178,7 @@ def handle_compose_message(update: Update, context: CallbackContext):
         ud[ComposeState.SUBJECT] = text
         ud[ComposeState.FLOW] = "brief"
         
-        update.message.reply_text(
+        await update.message.reply_text(
             f"✅ **Subject:** {text}\n\n"
             f"💭 **What should we say?**\n"
             f"Send a short brief or bullet points:",
@@ -197,7 +197,7 @@ def handle_compose_message(update: Update, context: CallbackContext):
             InlineKeyboardButton("🔄 Regenerate", callback_data="cmp:regen"),
         ]])
         
-        update.message.reply_text(
+        await update.message.reply_text(
             f"📝 **Draft Preview:**\n\n{draft}",
             reply_markup=keyboard,
             parse_mode="Markdown"
@@ -210,7 +210,7 @@ def _brief_to_body(brief: str) -> str:
     """Convert brief to email body"""
     return brief.replace("- ", "• ").strip()
 
-def _send_email_now(update: Update, context: CallbackContext):
+async def _send_email_now(update: Update, context: CallbackContext):
     """Send the composed email"""
     query = update.callback_query
     ud = _get_user_data(context)
@@ -221,7 +221,7 @@ def _send_email_now(update: Update, context: CallbackContext):
     body = ud.get(ComposeState.DRAFT)
     
     if not all([provider, to_emails, subject, body]):
-        query.answer("❌ Missing required fields")
+        await query.answer("❌ Missing required fields")
         return
     
     try:
@@ -255,8 +255,8 @@ def _send_email_now(update: Update, context: CallbackContext):
         except Exception as e:
             print(f"Warning: Failed to record outbound email: {e}")
         
-        query.message.reply_text("✅ **Email sent successfully!**", parse_mode="Markdown")
-        query.answer()
+        await query.message.reply_text("✅ **Email sent successfully!**", parse_mode="Markdown")
+        await query.answer()
         
         # Clear compose state
         for key in [ComposeState.FLOW, ComposeState.PROVIDER, ComposeState.TO, 
@@ -265,5 +265,5 @@ def _send_email_now(update: Update, context: CallbackContext):
             ud.pop(key, None)
         
     except Exception as e:
-        query.answer(f"❌ Send failed: {str(e)}")
-        query.message.reply_text(f"❌ **Send failed:** {str(e)}", parse_mode="Markdown")
+        await query.answer(f"❌ Send failed: {str(e)}")
+        await query.message.reply_text(f"❌ **Send failed:** {str(e)}", parse_mode="Markdown")
