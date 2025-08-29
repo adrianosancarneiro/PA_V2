@@ -55,14 +55,20 @@ def test_email_provider_auth():
     print("\n=== Email Provider Authentication Test ===")
     
     try:
-        # Test provider imports and auth status
-        from src.jobs.email_check import check_auth_status
-        auth_status = check_auth_status()
+        # Test Gmail provider authentication
+        from services.email.providers.gmail_provider import GmailProvider
+        gmail = GmailProvider()
+        gmail_auth = gmail.is_authenticated()
         
-        print(f"Gmail authentication: {'✅ Working' if auth_status.get('gmail', False) else '❌ Failed'}")
-        print(f"Outlook authentication: {'✅ Working' if auth_status.get('outlook', False) else '❌ Failed'}")
+        # Test Outlook provider authentication  
+        from services.email.providers.outlook_provider import OutlookGraphProvider
+        outlook = OutlookGraphProvider()
+        outlook_auth = outlook.is_authenticated()
         
-        return auth_status
+        print(f"Gmail authentication: {'✅ Working' if gmail_auth else '❌ Failed'}")
+        print(f"Outlook authentication: {'✅ Working' if outlook_auth else '❌ Failed'}")
+        
+        return {'gmail': gmail_auth, 'outlook': outlook_auth}
         
     except Exception as e:
         print(f"❌ Error testing email authentication: {e}")
@@ -73,15 +79,18 @@ def test_telegram_bot():
     print("\n=== Telegram Bot Test ===")
     
     try:
-        from src.bots.telegram_bot import TOKEN
-        if TOKEN and len(TOKEN) > 10:
-            print("✅ Telegram bot token loaded successfully")
+        # Test Telegram bot configuration
+        token = os.getenv('TELEGRAM_BOT_TOKEN')
+        chat_id = os.getenv('TELEGRAM_CHAT_ID')
+        
+        if token and len(token) > 10 and chat_id:
+            print("✅ Telegram configuration loaded successfully")
             return True
         else:
-            print("❌ Telegram bot token not loaded or invalid")
+            print("❌ Telegram configuration not loaded or incomplete")
             return False
     except Exception as e:
-        print(f"❌ Error testing Telegram bot: {e}")
+        print(f"❌ Error testing Telegram configuration: {e}")
         return False
 
 if __name__ == "__main__":

@@ -129,20 +129,20 @@ If tokens expire or become invalid, re-run the setup script.
 2. **Secrets File**: `/etc/pa_v2/secrets.env` should have restricted permissions (600)
 3. **Environment Variables**: Never commit credentials to version control
 
-## Integration with Email Check Job
+## Integration with Webhook System
 
-Once authentication is complete, the email check job (`src/jobs/email_check.py`) will:
+Once authentication is complete, the webhook system will:
 
 1. Load authentication tokens automatically
-2. Check authentication status on startup
-3. Skip providers that aren't authenticated
+2. Process Gmail push notifications in real-time  
+3. Enable on-demand Outlook operations (send, delete, filter)
 4. Log authentication status for troubleshooting
 
-Example output:
+Example webhook processing:
 ```
-Authentication Status:
-  gmail: ✅ Ready
-  outlook: ✅ Ready
+📨 Gmail webhook: historyId=3893893, email=user@example.com
+✅ Gmail authentication: Ready
+📧 Processing new email from webhook notification
 ```
 
 ## Manual Testing
@@ -151,10 +151,10 @@ To test authentication manually:
 
 ```bash
 # Test Gmail
-python -c "from src.email_system.providers.gmail_provider import GmailProvider; print('Gmail auth:', GmailProvider().is_authenticated())"
+python -c "from services.email.providers.gmail_provider import GmailProvider; print('Gmail auth:', GmailProvider().is_authenticated())"
 
-# Test Outlook
-python -c "from src.email_system.providers.outlook_provider import OutlookGraphProvider; print('Outlook auth:', OutlookGraphProvider().is_authenticated())"
+# Test Outlook  
+python -c "from services.email.providers.outlook_provider import OutlookGraphProvider; print('Outlook auth:', OutlookGraphProvider().is_authenticated())"
 ```
    ```
 

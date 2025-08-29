@@ -51,10 +51,26 @@ def send_email_cmd(args):
     else:
         print(f"❌ Failed to send email: {result['message']}")
 
-def start_email_monitor():
-    """Start the email monitoring service"""
-    from services.email.jobs.monitor import main as email_check_main, check_auth_status
+def check_auth_status():
+    """Check authentication status of email providers"""
+    try:
+        from services.email.providers.gmail_provider import GmailProvider
+        gmail = GmailProvider()
+        gmail_auth = gmail.is_authenticated()
+    except Exception:
+        gmail_auth = False
     
+    try:
+        from services.email.providers.outlook_provider import OutlookGraphProvider
+        outlook = OutlookGraphProvider()
+        outlook_auth = outlook.is_authenticated()
+    except Exception:
+        outlook_auth = False
+    
+    return {'gmail': gmail_auth, 'outlook': outlook_auth}
+
+def check_email_auth():
+    """Check email authentication status"""
     print("🔍 Checking email authentication status...")
     auth_status = check_auth_status()
     print("Authentication Status:")
@@ -63,21 +79,8 @@ def start_email_monitor():
     
     if not all(auth_status.values()):
         print("\n⚠️ Some providers need authentication. Run 'python -m src.main setup-auth' first.")
-        return
-    
-    print("\n🚀 Starting email monitor... (Press Ctrl+C to stop)")
-    try:
-        while True:
-            email_check_main()
-            print(f"😴 Sleeping for 60 seconds...")
-            time.sleep(60)  # Check every minute
-    except KeyboardInterrupt:
-        print("\n🛑 Email monitor stopped by user")
-
-def run_email_check_once():
-    """Run email check once and exit"""
-    from services.email.jobs.monitor import main as email_check_main
-    email_check_main()
+        return False
+    return True
 
 def list_providers():
     """List available email providers"""
@@ -99,9 +102,8 @@ def main():
     # List providers command
     subparsers.add_parser('list-providers', help='List available email providers')
     
-    # Email monitoring commands
-    subparsers.add_parser('monitor-emails', help='Start email monitoring service (runs continuously)')
-    subparsers.add_parser('check-emails', help='Check for new emails once and exit')
+    # Check authentication command
+    subparsers.add_parser('check-auth', help='Check email authentication status')
     
     # Send email command
     email_parser = subparsers.add_parser('send-email', help='Send an email')
@@ -121,12 +123,13 @@ def main():
         list_providers()
     elif args.command == 'send-email':
         send_email_cmd(args)
-    elif args.command == 'monitor-emails':
-        start_email_monitor()
-    elif args.command == 'check-emails':
-        run_email_check_once()
+    elif args.command == 'check-auth':
+        check_email_auth()
     else:
         parser.print_help()
+        print("\n📧 Email processing is now handled by webhooks.")
+        print("   Use the webhook system instead of polling commands.")
+        print("   Run 'deploy_webhook_only.sh' to set up webhooks.")
 
 if __name__ == '__main__':
     main()
