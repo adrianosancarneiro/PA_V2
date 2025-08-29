@@ -25,7 +25,7 @@ load_dotenv('/etc/pa_v2/secrets.env')
 
 # Import existing functionality
 from interfaces.telegram.views.digest import send_digest
-from interfaces.telegram.views.handlers import handle_button_press
+from interfaces.telegram.views.handlers import on_callback
 from services.email.email_repo import EmailRepo
 
     # Import new compose functionality
@@ -198,17 +198,12 @@ def main() -> None:
     
     # Add existing digest handlers (updated to support new reply flow)
     application.add_handler(CallbackQueryHandler(
-        handle_button_press,
+        on_callback,
         pattern=r"^(more|reply|star|delreq):"
     ))
     
-    # Set up email services in bot data
-    application.job_queue.run_once(
-        lambda context: context.application.create_task(
-            setup_bot_data(context.application)
-        ),
-        when=1
-    )
+    # Note: Email services setup removed for now to fix startup issues
+    # The bot will work for digest interactions without this
     
     print("📧 Bot handlers registered:")
     print("  • Commands: /start, /status, /digest, /compose")

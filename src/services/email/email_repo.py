@@ -13,20 +13,75 @@ from core.database import get_conn
 
 
 class EmailRepo:
-    """Repository for managing email threads and messages."""
-    
+    """Repository for email-related database operations"""
+
+    def _subjects_are_related(self, subject1: str, subject2: str) -> bool:
+        """Check if two subjects are related (same thread)"""
+        if not subject1 or not subject2:
+            return False
+        
+        # Remove common prefixes
+        def clean_subject(s):
+            s = s.strip()
+            for prefix in ['Re:', 'RE:', 'Fwd:', 'FWD:', 'Fw:']:
+                if s.startswith(prefix):
+                    s = s[len(prefix):].strip()
+            return s.lower()
+        
+        clean1 = clean_subject(subject1)
+        clean2 = clean_subject(subject2)
+        
+        # Consider subjects related if they're the same after cleaning
+        # or if one contains the other (allowing for slight variations)
+        if clean1 == clean2:
+            return True
+        if clean1 in clean2 or clean2 in clean1:
+            return True
+        
+        return False
+
     def upsert_thread(self, provider: str, provider_thread_id: str, subject_last: Optional[str]) -> int:
         """Insert or update an email thread and return its internal ID."""
         with get_conn() as conn, conn.cursor() as cur:
+            # First, check if a thread with this provider_thread_id exists
             cur.execute("""
-                INSERT INTO email_threads (provider, provider_thread_id, subject_last)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (provider, provider_thread_id)
-                DO UPDATE SET subject_last = COALESCE(EXCLUDED.subject_last, email_threads.subject_last),
-                              updated_at = NOW()
-                RETURNING id;
-            """, (provider, provider_thread_id, subject_last))
-            return cur.fetchone()[0]
+                SELECT id, subject_last FROM email_threads 
+                WHERE provider = %s AND provider_thread_id = %s
+            """, (provider, provider_thread_id))
+            
+            existing = cur.fetchone()
+            if existing:
+                thread_id, existing_subject = existing
+                # Only update if subjects are similar or related
+                if existing_subject and subject_last:
+                    # Check if this is truly the same thread or a thread ID reuse
+                    # If subjects are completely different, create a new thread with modified ID
+                    if not self._subjects_are_related(existing_subject, subject_last):
+                        # Create a new unique thread ID to avoid conflicts
+                        import time
+                        new_thread_id = f"{provider_thread_id}_{int(time.time())}"
+                        cur.execute("""
+                            INSERT INTO email_threads (provider, provider_thread_id, subject_last)
+                            VALUES (%s, %s, %s)
+                            RETURNING id;
+                        """, (provider, new_thread_id, subject_last))
+                        return cur.fetchone()[0]
+                
+                # Update existing thread with new subject if needed
+                if subject_last and subject_last != existing_subject:
+                    cur.execute("""
+                        UPDATE email_threads SET subject_last = %s, updated_at = NOW()
+                        WHERE id = %s
+                    """, (subject_last, thread_id))
+                return thread_id
+            else:
+                # Insert new thread
+                cur.execute("""
+                    INSERT INTO email_threads (provider, provider_thread_id, subject_last)
+                    VALUES (%s, %s, %s)
+                    RETURNING id;
+                """, (provider, provider_thread_id, subject_last))
+                return cur.fetchone()[0]
 
     def upsert_email(self, provider: str, provider_message_id: str, provider_thread_id: str,
                      from_display: Optional[str], from_email: Optional[str],
@@ -120,6 +175,50 @@ class EmailRepo:
                 SET tags = ARRAY_APPEND(tags, 'important')
                 WHERE id = %s AND NOT ('important' = ANY(tags))
             """, (email_id,))
+
+    # ---- Notification helpers ----
+    def mark_notified(self, email_id: int) -> None:
+        """Mark an email as notified in tags to avoid duplicate Telegram sends."""
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE email_messages
+                   SET tags = ARRAY_APPEND(tags, 'notified'),
+                       last_accessed_at = NOW()
+                 WHERE id = %s AND NOT ('notified' = ANY(tags))
+                """,
+                (email_id,),
+            )
+
+    def list_recent_unnotified(self, since_hours: int = 24, limit: int = 50) -> List[dict]:
+        """Return recent inbound emails missing the 'notified' tag."""
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT em.id, em.provider, em.from_display, em.from_email,
+                       em.subject, em.snippet, em.received_at
+                  FROM email_messages em
+                 WHERE em.direction = 'inbound'
+                   AND em.received_at >= NOW() - (%s || ' hours')::INTERVAL
+                   AND (em.tags IS NULL OR NOT ('notified' = ANY(em.tags)))
+                 ORDER BY em.received_at ASC
+                 LIMIT %s
+                """,
+                (since_hours, limit),
+            )
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r[0],
+                    "provider": r[1],
+                    "from_display": r[2],
+                    "from_email": r[3],
+                    "subject": r[4],
+                    "snippet": r[5],
+                    "received_at": r[6],
+                }
+                for r in rows
+            ]
 
     def touch(self, email_id: int) -> None:
         """Update last_accessed_at timestamp for an email."""
