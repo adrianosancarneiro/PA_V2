@@ -18,3 +18,10 @@ n8n_data/
 
 # Logs
 *.log
+
+# Ignore bulky SDK and artifacts
+google-cloud-sdk/
+google-cloud-cli*.tar.gz
+.venv/
+*.log
+__pycache__/
