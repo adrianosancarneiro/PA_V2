@@ -1,0 +1,12 @@
+[Unit]
+Description=Renew Gmail Push Watch Every 6 Hours
+Requires=pa-gmail-watch.service
+
+[Timer]
+# Gmail watch expires after 7 days, renew every 6 hours for safety
+OnBootSec=5min
+OnUnitActiveSec=6h
+RandomizedDelaySec=30min
+
+[Install]
+WantedBy=timers.target

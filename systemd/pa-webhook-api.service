@@ -1,0 +1,29 @@
+[Unit]
+Description=PA_V2 Webhook API Service
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=mentorius
+Group=mentorius
+WorkingDirectory=/home/mentorius/AI_Services/PA_V2
+Environment=PATH=/home/mentorius/AI_Services/PA_V2/.venv/bin
+EnvironmentFile=/etc/pa_v2/secrets.env
+ExecStart=/home/mentorius/AI_Services/PA_V2/.venv/bin/python /home/mentorius/AI_Services/PA_V2/run_webhook.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pa-webhook-api
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/mentorius/AI_Services/PA_V2
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target

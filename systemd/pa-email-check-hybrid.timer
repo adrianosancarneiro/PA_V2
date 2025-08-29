@@ -1,0 +1,12 @@
+[Unit]
+Description=PA_V2 Email Check (Outlook + Gmail Fallback)
+Requires=pa-email-check.service
+
+[Timer]
+# Slower interval when webhooks handle Gmail
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30sec
+
+[Install]
+WantedBy=timers.target

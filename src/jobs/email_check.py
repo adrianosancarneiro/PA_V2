@@ -14,12 +14,22 @@ load_dotenv('/etc/pa_v2/secrets.env')
 
 # Import from your existing email system
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+import pathlib
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from email_system.integration import get_latest_emails
 from repo.email_repo import EmailRepo
 from providers.gmail import gmail_fetch_latest
 from providers.outlook import outlook_fetch_latest
+
+# Import telegram digest functionality
+try:
+    from telegram import Bot
+    from telegram.digest import send_digest
+    TELEGRAM_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Telegram not available: {e}")
+    TELEGRAM_AVAILABLE = False
 
 # Import providers safely (they may have missing dependencies)
 try:
@@ -41,7 +51,7 @@ os.environ["CONFIG_DIR"] = str(CONFIG_DIR)
 STATE_FILE = CONFIG_DIR / "email_check_state.json"
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")  # your own chat id
+TELEGRAM_CHAT_ID = int(os.getenv("TELEGRAM_CHAT_ID", "0")) if os.getenv("TELEGRAM_CHAT_ID") else 0
 LLAMA_BASE_URL = os.getenv("LLAMA_BASE_URL", "http://192.168.0.83:8080").rstrip("/")
 
 # Providers we'll check every run
@@ -317,20 +327,6 @@ def main() -> None:
             except Exception as ex:
                 print(f"⚠️ Failed to store email in database: {ex}")
                 # Continue processing even if DB storage fails
-            
-            text = get_text_from_email(e)
-            try:
-                ai = llama_summarize_and_draft(text)
-            except Exception as ex:
-                print(f"⚠️ AI summary failed: {ex}")
-                ai = f"(AI unavailable) Summary: {text[:300]}..."
-            
-            msg = format_telegram_message(provider, e, ai)
-            try:
-                send_telegram(msg)
-                print(f"✅ Sent Telegram notification for email: {e.get('subject', 'No Subject')}")
-            except Exception as ex:
-                print(f"❌ Telegram send failed: {ex}")
 
         # update state
         if new_items:
@@ -344,6 +340,20 @@ def main() -> None:
     if any_new:
         save_state(state)
         print("💾 Saved updated state")
+        
+        # Send digest instead of individual messages
+        if TELEGRAM_AVAILABLE and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+            try:
+                print("📱 Sending Telegram digest...")
+                rows = repo.latest_new_messages(limit=20)
+                if rows:
+                    bot = Bot(TELEGRAM_BOT_TOKEN)
+                    send_digest(bot, TELEGRAM_CHAT_ID, rows)
+                    print(f"✅ Sent digest with {len(rows)} emails")
+                else:
+                    print("📭 No new messages for digest")
+            except Exception as ex:
+                print(f"❌ Digest send failed: {ex}")
     else:
         print("📭 No new emails found")
     

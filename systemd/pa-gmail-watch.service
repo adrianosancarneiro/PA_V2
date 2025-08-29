@@ -1,0 +1,20 @@
+[Unit]
+Description=PA_V2 Gmail Watch Lifecycle (Renew Push Subscriptions)
+After=network.target postgresql.service pa-webhook-api.service
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+User=mentorius
+Group=mentorius
+WorkingDirectory=/home/mentorius/AI_Services/PA_V2
+Environment=PATH=/home/mentorius/AI_Services/PA_V2/.venv/bin
+EnvironmentFile=/etc/pa_v2/secrets.env
+ExecStart=/home/mentorius/AI_Services/PA_V2/.venv/bin/python -c "
+import sys; sys.path.append('src'); 
+from jobs.push_lifecycle import run; 
+run()
+"
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pa-gmail-watch

@@ -6,10 +6,11 @@ Demonstrates both email sending and reading capabilities
 
 import sys
 import os
+import pathlib
 # Add the src directory to the path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent / "src"))
 
-from email_system.providers.outlook_provider import OutlookGraphProvider
+from services.email.providers.outlook_provider import OutlookGraphProvider
 
 def test_outlook_provider():
     """Test the OutlookGraphProvider functionality"""

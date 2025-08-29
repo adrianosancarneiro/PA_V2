@@ -14,12 +14,12 @@ from pathlib import Path
 # Add src directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
-from email_system.integration import send_email, get_latest_emails, EmailProviderRegistry
+from services.email.integration import send_email, get_latest_emails, EmailProviderRegistry
 
 def setup_auth():
     """Run email authentication setup"""
     # Add tools directory to path
-    project_root = Path(__file__).parent.parent.parent
+    project_root = Path(__file__).parent.parent
     tools_path = project_root / "tools"
     sys.path.insert(0, str(tools_path))
     
@@ -53,7 +53,7 @@ def send_email_cmd(args):
 
 def start_email_monitor():
     """Start the email monitoring service"""
-    from jobs.email_check import main as email_check_main, check_auth_status
+    from services.email.jobs.monitor import main as email_check_main, check_auth_status
     
     print("🔍 Checking email authentication status...")
     auth_status = check_auth_status()
@@ -76,7 +76,7 @@ def start_email_monitor():
 
 def run_email_check_once():
     """Run email check once and exit"""
-    from jobs.email_check import main as email_check_main
+    from services.email.jobs.monitor import main as email_check_main
     email_check_main()
 
 def list_providers():

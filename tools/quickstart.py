@@ -1,4 +1,5 @@
 import os.path
+import pathlib
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -9,12 +10,12 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googlea
 def main():
     creds = None
     # Look for token in config directory
-    config_dir = os.path.join(os.path.dirname(__file__), "..", "config")
-    token_path = os.path.join(config_dir, 'token.json')
-    credentials_path = os.path.join(config_dir, 'client_secret_147697913284-lrl04fga24gpkk6ltv6ai3d4eps602lb.apps.googleusercontent.com.json')
+    config_dir = pathlib.Path(__file__).resolve().parent.parent / "config"
+    token_path = config_dir / 'token.json'
+    credentials_path = config_dir / 'client_secret_147697913284-lrl04fga24gpkk6ltv6ai3d4eps602lb.apps.googleusercontent.com.json'
     
-    if os.path.exists(token_path):
-        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+    if token_path.exists():
+        creds = Credentials.from_authorized_user_file(str(token_path), SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
