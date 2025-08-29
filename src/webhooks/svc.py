@@ -144,6 +144,9 @@ async def gmail_process_history(incoming_hid: int):
                     full_msg = gmail_fetch_message_by_id(svc, msg_id)
                     nm = to_normalized_gmail(full_msg)
                     
+                    # Debug: Log the extracted threadId
+                    print(f"🐛 Debug - Message {msg_id}: threadId='{nm['thread_id']}', subject='{nm.get('subject', 'No Subject')}'")
+                    
                     # Store in database
                     email_id = repo.upsert_email(
                         provider=nm["provider"],
