@@ -27,6 +27,7 @@ load_dotenv('/etc/pa_v2/secrets.env')
 from interfaces.telegram.views.digest import send_digest
 from interfaces.telegram.views.handlers import on_callback
 from services.email.email_repo import EmailRepo
+from shared.llm_client import LLMClient
 
     # Import new compose functionality
 try:
@@ -163,8 +164,29 @@ async def combined_message_handler(update: Update, context: ContextTypes.DEFAULT
     """Handle text messages for both reply and compose flows"""
     if context.user_data.get('awaiting_reply'):
         await handle_reply_message(update, context)
-    elif COMPOSE_AVAILABLE:
+    elif COMPOSE_AVAILABLE and context.user_data.get('composing'):
         await handle_compose_message(update, context)
+    else:
+        # Send any message as a prompt to LLaMA.cpp
+        user_message = update.message.text
+        user_id = str(update.effective_user.id)
+        
+        # Show typing indicator
+        await context.bot.send_chat_action(
+            chat_id=update.effective_chat.id, 
+            action="typing"
+        )
+        
+        try:
+            llm_client = LLMClient()
+            response = llm_client.chat(user_message, user_id=user_id, include_context=True)
+            await update.message.reply_text(response)
+        except Exception as e:
+            await update.message.reply_text(
+                f"� Sorry, I'm having trouble processing your message right now.\n"
+                f"Error: {str(e)}\n\n"
+                "You can try using commands like /start, /digest, /compose, or /status"
+            )
 
 
 def main() -> None:
@@ -206,7 +228,7 @@ def main() -> None:
     # Add existing digest handlers (updated to support new reply flow)
     application.add_handler(CallbackQueryHandler(
         on_callback,
-        pattern=r"^(more|reply|star|delreq):"
+        pattern=r"^(more|reply|star|delreq|delok|delcancel|undodel):"
     ))
     
     # Note: Email services setup removed for now to fix startup issues
